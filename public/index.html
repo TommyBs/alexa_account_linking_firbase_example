@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Welcome to Firebase Hosting</title>
-
+    
     <!-- update the version number as needed -->
     <script defer src="/__/firebase/8.0.1/firebase-app.js"></script>
     <!-- include only the Firebase features as you need -->
@@ -17,6 +17,8 @@
     <script defer src="/__/firebase/8.0.1/firebase-analytics.js"></script>
     <script defer src="/__/firebase/8.0.1/firebase-remote-config.js"></script>
     <script defer src="/__/firebase/8.0.1/firebase-performance.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/ui/4.6.1/firebase-ui-auth.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.6.1/firebase-ui-auth.css" />
     <!-- 
       initialize the SDK after all desired features are loaded, set useEmulator to false
       to avoid connecting the SDK to running emulators.
@@ -39,46 +41,66 @@
     </style>
   </head>
   <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
-    </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+    <div id="firebaseui-auth-container"></div>
 
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+        
 
         try {
           let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
+          let db = firebase.firestore();
+
+          //This function uses the crypto module which might not be available in all browsers
+          //see this updated answer https://stackoverflow.com/a/2117523/597384
+          function uuidv4() {
+        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+        }
+          //Check if the user is logged in
+          firebase.auth().onAuthStateChanged( async (user) => {
+              if(user) {
+                
+                  const uid = user.uid;
+                  const code = uuidv4();
+                  const urlParams = new URLSearchParams(window.location.search);
+                  const state = urlParams.get("state");
+                  const redirectURI = urlParams.get("redirect_uri");
+                  const url = redirectURI + "?state=" + state + "&code=" + code;
+                  try {
+                  await db.collection('codes').doc(uid).set(
+                    {code:code,uid:uid,created_at: firebase.firestore.FieldValue.serverTimestamp()},
+                     {merge:true}
+                  );
+                  } catch(error) {
+                    console.log(error);
+                  }
+                  
+                  // Redirect to url
+                  window.location.href = url;
+
+
+              } else { // No user
+                let ui = new firebaseui.auth.AuthUI(firebase.auth());
+                ui.start('#firebaseui-auth-container', {
+                  signInOptions: [
+                  firebase.auth.EmailAuthProvider.PROVIDER_ID
+                ],
+                //disable firebase UI redirect
+                callbacks: {
+                   
+                    signInSuccessWithAuthResult: function(
+                      authResult,
+                      redirectUrl
+                    ) {
+                      return false;
+                    }
+                  },
+                  credentialHelper: firebaseui.auth.CredentialHelper.NONE
+});
+              }
+          }); // end onAuthStageChanged
         } catch (e) {
           console.error(e);
           loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
