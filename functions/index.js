@@ -59,7 +59,7 @@ async function accessTokenFromAuthCode(req,res) {
         access_token: token,
         token_type: "bearer",
         refresh_token: refresh_token,
-        expires_in: 1000 * 60 * 60 * 24, // 1 day
+        expires_in: 3600,
     })
 }
 
@@ -83,7 +83,7 @@ async function accessTokenFromRefreshToken(req,res) {
         access_token: token,
         token_type: "bearer",
         refresh_token: refresh_token,
-        expires_in: 1000 * 60 * 60 * 24, // 1 day
+        expires_in: 3600
     })
 
 }
