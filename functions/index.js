@@ -68,7 +68,7 @@ async function accessTokenFromAuthCode(req,res) {
 async function accessTokenFromRefreshToken(req,res) {
     const refresh_token = req.body.refresh_token;
     const uid = await getUidFromRefreshToken(refresh_token);
-    console.log("uid is ", uid)
+    
     if(!uid) {
         res.status(401).send('')
     }
@@ -90,7 +90,7 @@ async function accessTokenFromRefreshToken(req,res) {
 
 exports.access_token = functions.https.onRequest(async (req, res) => {
     // check client_id and client_secret
-    console.log("req body", JSON.stringify(req.body))
+   
     if (req.body.grant_type === "authorization_code") {
       return  accessTokenFromAuthCode(req, res);
     } else if (req.body.grant_type === "refresh_token") {
